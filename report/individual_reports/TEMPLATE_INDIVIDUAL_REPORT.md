@@ -1,51 +1,75 @@
 # Individual Report: Lab 3 - Chatbot vs ReAct Agent
 
-- **Student Name**: [Your Name Here]
-- **Student ID**: [Your ID Here]
-- **Date**: [Date Here]
+**Student Name:** Lê Minh Khang  
+**Student ID:** 2A202600102  
+**Date:** 6/4/2026  
 
 ---
 
 ## I. Technical Contribution (15 Points)
 
-*Describe your specific contribution to the codebase (e.g., implemented a specific tool, fixed the parser, etc.).*
+Mô tả đóng góp cụ thể vào mã nguồn (ví dụ: triển khai công cụ cụ thể, sửa bộ phân giải, v.v.).
 
-- **Modules Implementated**: [e.g., `src/tools/search_tool.py`]
-- **Code Highlights**: [Copy snippets or link file lines]
-- **Documentation**: [Brief explanation of how your code interacts with the ReAct loop]
+- **Modules Implemented:** `src/tools/oxford_tool.py`
+
+- **Code Highlights:**  
+
+- **Documentation:**  
+Khi LLM cần tra cứu định nghĩa chính xác của một từ vựng, nó sẽ gọi công cụ Oxford API. Điều này giúp Agent cung cấp kiến thức chuẩn xác thay vì tự suy diễn nghĩa của từ.
 
 ---
 
 ## II. Debugging Case Study (10 Points)
 
-*Analyze a specific failure event you encountered during the lab using the logging system.*
+Phân tích một sự cố lỗi cụ thể gặp phải trong quá trình làm lab thông qua hệ thống logging.
 
-- **Problem Description**: [e.g., Agent caught in an infinite loop with `Action: search(None)`]
-- **Log Source**: [Link or snippet from `logs/YYYY-MM-DD.log`]
-- **Diagnosis**: [Why did the LLM do this? Was it the prompt, the model, or the tool spec?]
-- **Solution**: [How did you fix it? (e.g., updated `Thought` examples in the system prompt)]
+- **Problem Description:**  
+Agent rơi vào vòng lặp (loop) khi cố gắng liệt kê các bộ thẻ nhớ, liên tục gọi `list_flashcard_sets()` nhưng gặp lỗi kỹ thuật, dẫn đến việc chạm ngưỡng tối đa (max steps) và báo lỗi định dạng.
+
+- **Log Source:**  
+`logs/2026-04-06.log`, mốc thời gian khoảng `2026-04-06T10:29:....`
+
+- **Diagnosis:**  
+  - Qua log, hệ thống báo:  
+    `TypeError: list_sets_func() takes 0 positional arguments but 1 was given.`  
+  - Nguyên nhân do LLM tự động truyền tham số vào hàm trong khi hàm này không yêu cầu đầu vào.  
+  - Ngoài ra, tại Step 2 (log `10:07:12`), lỗi thiếu argument `front` và `back` cho thấy việc ánh xạ tham số từ chuỗi JSON sang hàm Python chưa đồng bộ.
+
+- **Solution:**  
+  - Cập nhật mô tả công cụ trong prompt để chỉ rõ `list_flashcard_sets` không nhận tham số.  
+  - Điều chỉnh logic xử lý tại `agent.py` để unpack các tham số từ Action một cách chính xác hơn.  
 
 ---
 
 ## III. Personal Insights: Chatbot vs ReAct (10 Points)
 
-*Reflect on the reasoning capability difference.*
+Phản hồi về sự khác biệt trong khả năng lập luận.
 
-1.  **Reasoning**: How did the `Thought` block help the agent compared to a direct Chatbot answer?
-2.  **Reliability**: In which cases did the Agent actually perform *worse* than the Chatbot?
-3.  **Observation**: How did the environment feedback (observations) influence the next steps?
+- **Reasoning:**  
+Khối Thought giúp Agent chia nhỏ vấn đề thành các bước logic (ví dụ: tạo set trước, thêm card sau). Chatbot thông thường thường trả lời trực tiếp dựa trên dữ liệu có sẵn, dễ dẫn đến sai sót nếu thiếu thông tin thời gian thực. ReAct cung cấp minh chứng rõ ràng cho "tại sao" Agent lại thực hiện hành động đó.
+
+- **Reliability:**  
+Agent thực tế hoạt động kém hơn Chatbot khi:  
+  - Task quá đơn giản: Gây lãng phí tài nguyên và thời gian (latency cao) cho các câu chào hỏi hoặc yêu cầu đơn giản.  
+  - Input thô tục: Như trong log `07:35:03`, Chatbot phản ứng linh hoạt hơn, trong khi Agent có thể bị "vấp" nếu không có kịch bản xử lý ngoại lệ tốt.  
+
+- **Observation:**  
+Phản hồi từ môi trường là "la bàn" cho Agent:  
+  - Giúp Agent nhận ra lỗi (như lỗi thiếu tham số ở Step 2) để tìm cách khắc phục ở Step 3.  
+  - Nếu Observation bị nhiễu hoặc trả về thông báo lỗi không rõ ràng, Agent sẽ dễ rơi vào vòng lặp vô tận.  
 
 ---
 
 ## IV. Future Improvements (5 Points)
 
-*How would you scale this for a production-level AI agent system?*
+Làm thế nào để mở rộng hệ thống này lên mức độ sản phẩm (production-level)?
 
-- **Scalability**: [e.g., Use an asynchronous queue for tool calls]
-- **Safety**: [e.g., Implement a 'Supervisor' LLM to audit the agent's actions]
-- **Performance**: [e.g., Vector DB for tool retrieval in a many-tool system]
+- **Scalability:**  
+Sử dụng hàng đợi bất đồng bộ (async queue) và kiến trúc microservices cho các công cụ để xử lý nhiều yêu cầu song song mà không làm nghẽn hệ thống chính.
 
----
+- **Safety:**  
+Triển khai một "Supervisor LLM" hoặc bộ lọc tiền xử lý để kiểm tra tính hợp lệ của Action, ngăn chặn các hành động lặp lại vô ích và lọc các nội dung nhạy cảm/thô tục từ người dùng.
 
-> [!NOTE]
-> Submit this report by renaming it to `REPORT_[YOUR_NAME].md` and placing it in this folder.
+- **Performance:**  
+  - Sử dụng Vector Database để truy xuất công cụ (Tool Retrieval) khi số lượng công cụ lên tới hàng trăm.  
+  - Lưu bộ nhớ đệm (Cache) các kết quả từ API (như Oxford) để giảm chi phí và tăng tốc độ phản hồi.  
