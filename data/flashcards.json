@@ -3,12 +3,37 @@
     "name": "Nature",
     "cards": []
   },
-  "set_name=\"Education": {
-    "name": "set_name=\"Education",
+  "Công việc": {
+    "name": "Công việc",
     "cards": []
   },
-  "set_name=\"Nature": {
-    "name": "set_name=\"Nature",
+  "Fruit": {
+    "name": "Fruit",
+    "cards": [
+      {
+        "front": "apple",
+        "back": "quả táo",
+        "synonyms": []
+      }
+    ]
+  },
+  "city": {
+    "name": "city",
+    "cards": [
+      {
+        "front": "address",
+        "back": "địa chỉ",
+        "synonyms": []
+      },
+      {
+        "front": "building",
+        "back": "tòa nhà",
+        "synonyms": []
+      }
+    ]
+  },
+  "business": {
+    "name": "business",
     "cards": []
   }
 }

@@ -11,7 +11,7 @@ class ReActAgent:
     Students should implement the core loop logic and tool execution.
     """
     
-    def __init__(self, llm: LLMProvider, tools: List[Dict[str, Any]], max_steps: int = 5):
+    def __init__(self, llm: LLMProvider, tools: List[Dict[str, Any]], max_steps: int = 6):
         self.llm = llm
         self.tools = tools
         self.max_steps = max_steps
@@ -28,14 +28,14 @@ class ReActAgent:
         return f"""
             You are an English Learning Assistant. You help users study vocabulary.
             You have access to the following tools:
-            Available tools:. 
+            Available tools:.
             {tool_descriptions}
 
             Use the following format:
             Thought: your line of reasoning.
             Action: tool_name(arguments)
-            Observation: result of the tool call.
-            ... (repeat Thought/Action/Observation if needed)
+            [The system will inject the Observation here — do NOT write Observation yourself]
+            ... (repeat Thought/Action if needed)
             Final Answer: your final response.
 
             Rules:
@@ -43,6 +43,7 @@ class ReActAgent:
             2. Format actions exactly as 'tool_name(args)'.
             3. Only use the tools provided above.
             4. If you have the answer or no tool is needed, provide 'Final Answer:' immediately.
+            5. NEVER write 'Observation:' yourself. The system provides it after executing your Action.
             """
 
 
@@ -77,7 +78,9 @@ class ReActAgent:
             )
             
             logger.info(f"--- Step {steps} ---\n{content}")
-            history += content + "\n"
+            # Strip any fake "Observation:" the LLM may have hallucinated in its response
+            clean_content = content.split("Observation:")[0].rstrip()
+            history += clean_content + "\n"
 
             # 1. final answer check
             if "Final Answer:" in content:
@@ -89,7 +92,7 @@ class ReActAgent:
             action_match = re.search(r"Action:\s*(\w+)\((.*?)\)", content)
             if action_match:
                 tool_name = action_match.group(1)
-                tool_args = action_match.group(2).strip("'\"") # Làm sạch đối số
+                tool_args = action_match.group(2)
                 
                 # execute tool and get observation
                 observation = self._execute_tool(tool_name, tool_args)
@@ -111,12 +114,25 @@ class ReActAgent:
         """
         for tool in self.tools:
             if tool['name'] == tool_name:
-                # TODO: Implement dynamic function calling or simple if/else
                 try:
-                    return tool['func'](args)
+                    if not args.strip():
+                        # No arguments — call with no args
+                        return tool['func']()
+
+                    # Try to parse key="value" or key='value' pairs
+                    kv_matches = re.findall(r'(\w+)\s*=\s*(?:"([^"]*)"' + r"|'([^']*)')", args)
+                    if kv_matches:
+                        kwargs = {}
+                        for match in kv_matches:
+                            key = match[0]
+                            value = match[1] if match[1] else match[2]
+                            kwargs[key] = value
+                        return tool['func'](**kwargs)
+
+                    # Fall back: single positional string arg
+                    return tool['func'](args.strip().strip('"\''))
                 except Exception as e:
                     logger.error(f"Tool execution error: {str(e)}")
                     return f"Error executing {tool_name}: {str(e)}"
-                return f"Result of {tool_name}"
-        
+
         return f"Error: Tool '{tool_name}' not found."

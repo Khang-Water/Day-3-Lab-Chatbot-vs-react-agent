@@ -15,7 +15,7 @@ def main():
     )
 
     # 3. Initialize Agent with tools
-    agent = ReActAgent(llm=llm, tools=tools, max_steps=5)
+    agent = ReActAgent(llm=llm, tools=tools, max_steps=6)
 
     print("--- 🤖 English Learning Agent đã sẵn sàng! ---")
     print("(Gõ 'exit', 'quit' hoặc 'bye' để dừng cuộc trò chuyện)\n")
